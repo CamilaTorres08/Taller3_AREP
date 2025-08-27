@@ -1,11 +1,13 @@
 package edu.eci.arep.microspringboot.httpserver;
 
 import edu.eci.arep.microspringboot.annotations.GetMapping;
+import edu.eci.arep.microspringboot.annotations.RequestParam;
 import edu.eci.arep.microspringboot.annotations.RestController;
 import java.net.*;
 import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -90,21 +92,6 @@ public class HttpServer {
         serverSocket.close();
     }
 
-    private static String helloService(URI requesturi) {
-        //Encabezado con content-type adaptado para retornar un JSON        
-        String response = "HTTP/1.1 200 OK\n\r"
-                + "content-type: application/json\n\r"
-                + "\n\r";
-        //Extrae el valor de "name" desde el query.
-        String name = requesturi.getQuery().split("=")[1]; //name=jhon
-
-        //Crea la respuesta completa                
-        response = response + "{\"mensaje\": \"Hola " + name + "\"}";
-        return response;
-    }
-
- 
-
     private static String invokeService(URI requri) {
         String header = "HTTP/1.1 200 OK\n\r"
                     + "content-type: text/html\n\r"
@@ -114,8 +101,12 @@ public class HttpServer {
             HttpResponse res = new HttpResponse();
             String servicePath = requri.getPath().substring(4);
             Method m = services.get(servicePath);
-
-            return header + m.invoke(null);
+            
+            RequestParam rp = (RequestParam) m.getParameterAnnotations()[0][0];
+            String queryParamName = rp.value();
+            String[] argsValues = new String[]{req.getValue(queryParamName)};
+            
+            return header + m.invoke(null,argsValues);
         } catch (IllegalAccessException ex) {
             Logger.getLogger(HttpServer.class.getName()).log(Level.SEVERE, null, ex);
         } catch (InvocationTargetException ex) {
