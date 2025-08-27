@@ -101,10 +101,14 @@ public class HttpServer {
             HttpResponse res = new HttpResponse();
             String servicePath = requri.getPath().substring(4);
             Method m = services.get(servicePath);
-            
             RequestParam rp = (RequestParam) m.getParameterAnnotations()[0][0];
-            String queryParamName = rp.value();
-            String[] argsValues = new String[]{req.getValue(queryParamName)};
+            String[] argsValues = null;
+            if(requri.getQuery() == null){
+                argsValues = new String[]{rp.defaultValue()};
+            }else{  
+                String queryParamName = rp.value();
+                argsValues = new String[]{req.getValue(queryParamName)};
+            }
             
             return header + m.invoke(null,argsValues);
         } catch (IllegalAccessException ex) {
