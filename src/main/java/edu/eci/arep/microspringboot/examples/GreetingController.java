@@ -26,7 +26,7 @@ public class GreetingController {
 
 	@GetMapping("/greeting")
 	public static String greeting(@RequestParam(value = "name", defaultValue = "World") String name) {
-		return "Hola " + name;
+		return "Hello " + name;
 	}
 	@GetMapping("/void")
 	public static String defaultValue() {
@@ -34,8 +34,8 @@ public class GreetingController {
 	}
 
 	@GetMapping("/params")
-	public static String params(@RequestParam(value = "name", defaultValue = "Camila") String name,@RequestParam(value = "gender", defaultValue = "female") String gender) {
-		return "Hello " + name + " Gender: " + gender;
+	public static String params(@RequestParam(value = "name", defaultValue = "Camila") String name,@RequestParam(value = "gender", defaultValue = "female") String gender,@RequestParam(value = "age", defaultValue = "23") String age) {
+		return "Name: " + name + " Gender: " + gender+ " Age: " + age;
 	}
 
 	@GetMapping("/body")
