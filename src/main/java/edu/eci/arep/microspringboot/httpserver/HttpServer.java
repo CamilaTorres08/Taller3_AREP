@@ -3,19 +3,29 @@ package edu.eci.arep.microspringboot.httpserver;
 import edu.eci.arep.microspringboot.annotations.GetMapping;
 import edu.eci.arep.microspringboot.annotations.RequestParam;
 import edu.eci.arep.microspringboot.annotations.RestController;
+import edu.eci.arep.microspringboot.classes.Task;
+
 import java.net.*;
 import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static edu.eci.arep.microspringboot.classes.TaskManager.getTaskManager;
+
 public class HttpServer {
 
     public static Map<String, Method> services = new HashMap();
+    static String dir;
+    static int port = 35000;
     public static void loadServices(String[] args) {
         try {
             Class c = Class.forName(args[0]);
@@ -32,19 +42,22 @@ public class HttpServer {
             Logger.getLogger(HttpServer.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
+    public static void start(int serverPort) throws Exception {
+        port = serverPort;
+        runServer(new String[]{});
+    }
     public static void runServer(String[] args) throws IOException, URISyntaxException {
         loadServices(args);
-        
+
         ServerSocket serverSocket = null;
         try {
-            serverSocket = new ServerSocket(35000);
+            serverSocket = new ServerSocket(port);
         } catch (IOException e) {
             System.err.println("Could not listen on port: 35000.");
             System.exit(1);
         }
         Socket clientSocket = null;
-
-        boolean running = true;
+        Boolean running = true;
         while (running) {
             try {
                 System.out.println("Listo para recibir ...");
@@ -53,133 +66,241 @@ public class HttpServer {
                 System.err.println("Accept failed.");
                 System.exit(1);
             }
-
-            PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
             BufferedReader in = new BufferedReader(
                     new InputStreamReader(
                             clientSocket.getInputStream()));
-            String inputLine, outputLine;
-
-            String path = null;
-            boolean firstline = true;
-            URI requri = null;
-
+            OutputStream outputStream = clientSocket.getOutputStream();
+            String inputLine, firstLine="";
+            boolean isFirstLine = true;
+            int contentLength = 0;
             while ((inputLine = in.readLine()) != null) {
-                if (firstline) {
-                    requri = new URI(inputLine.split(" ")[1]);
-                    System.out.println("Path: " + requri.getPath());
-                    firstline = false;
-                }
                 System.out.println("Received: " + inputLine);
-                if (!in.ready()) {
+                if (isFirstLine) {
+                    isFirstLine = false;
+                    firstLine = inputLine;
+                }
+                if (inputLine.toLowerCase().startsWith("content-length:")) {
+                    contentLength = Integer.parseInt(inputLine.split(":")[1].trim());
+                }
+                if (inputLine.isEmpty() || inputLine.trim().isEmpty()) {
                     break;
                 }
             }
-
-            if (requri.getPath().startsWith("/app")) {
-                outputLine = invokeService(requri);
-            } else {
-                //Leo del disco
-
-                outputLine = defaultResponse();
+            String body = "";
+            if (contentLength > 0) {
+                char[] bodyChars = new char[contentLength];
+                in.read(bodyChars, 0, contentLength);
+                body = new String(bodyChars);
             }
-            out.println(outputLine);
-
-            out.close();
+            if(!firstLine.isEmpty()) manageRequest(firstLine,body,outputStream);
+            outputStream.close();
             in.close();
             clientSocket.close();
         }
         serverSocket.close();
     }
-
-    private static String invokeService(URI requri) {
-        String header = "HTTP/1.1 200 OK\n\r"
-                    + "content-type: text/html\n\r"
-                    + "\n\r";
+    /**
+     * Manages an HTTP request by processing the method, resource, and body,
+     * and writing the corresponding response.
+     * @param inputLine the first line of the HTTP request (contains method and resource)
+     * @param body      the body of the request, if present
+     * @param out       the output stream used to send the response back to the client
+     * @throws IOException if an error occurs while writing to the output stream
+     */
+    private static void manageRequest(String inputLine, String body,OutputStream out) throws IOException {
+        HttpResponse response = new HttpResponse();
         try {
-            HttpRequest req = new HttpRequest(requri);
-            HttpResponse res = new HttpResponse();
-            String servicePath = requri.getPath().substring(4);
-            Method m = services.get(servicePath);
-            RequestParam rp = (RequestParam) m.getParameterAnnotations()[0][0];
-            String[] argsValues = null;
-            if(requri.getQuery() == null){
-                argsValues = new String[]{rp.defaultValue()};
-            }else{  
-                String queryParamName = rp.value();
-                argsValues = new String[]{req.getValue(queryParamName)};
+            String[] dividedUri = inputLine.split(" ");
+            URI requestUri = new URI(dividedUri[1]);
+            String path = requestUri.getPath();
+            String method = dividedUri[0];
+            if(method.equals("GET") && path.startsWith("/app")) {
+                response = invokeService(requestUri);
+            }else if(method.equals("POST") && path.startsWith("/app")){
+                String taskName = "";
+                String taskDescription = "";
+                String[] values = body.split(",");
+                for(String value : values){
+                    String[] pair = value.split(":",2);
+                    String key = pair[0].replace("\"","").replace("{","").replace("}","").replace(" ","").trim();
+                    String val = pair[1].replace("\"","").replace("{","").replace("}","").trim();
+                    if(key.equals("name")) taskName = val;
+                    if(key.equals("description")) taskDescription = val;
+                }
+                if(!taskName.isEmpty() && !taskDescription.isEmpty()) response = saveTask(taskName, taskDescription);
+                else response = new HttpResponse(400,"Missing values, Task Name and Task Description are required");
+
+            }else if(method.equals("GET") && (path.equals("/") || path.endsWith("html") || path.endsWith("js") || path.endsWith("css")
+                    || path.endsWith("png") || path.endsWith("jpg") || path.endsWith("jpeg"))){
+                response = getResources(path);
+            }else{
+                response = new HttpResponse(405,"Method "+method+" "+path+" not supported");
             }
-            
-            return header + m.invoke(null,argsValues);
-        } catch (IllegalAccessException ex) {
-            Logger.getLogger(HttpServer.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (InvocationTargetException ex) {
-            Logger.getLogger(HttpServer.class.getName()).log(Level.SEVERE, null, ex);
+        }catch (FileNotFoundException e){
+            response = new HttpResponse(404,e.getMessage());
+        }catch (Exception e) {
+            response = new HttpResponse(500,e.getMessage());
+        }finally {
+            //if the response does not have content-type assign automatically text/plain
+            response.getHeaders().putIfAbsent("Content-Type","text/plain");
+            byte[] bodyResponse = response.getBody();
+            //if response does not have body set status No Content
+            if(bodyResponse == null && response.getStatusCode() == 200) response.setStatusCode(204);
+            //Build full response
+            StringBuilder sb = new StringBuilder()
+                    .append("HTTP/1.1 ").append(response.getStatusCode()).append(" ").append(response.getStatusMessage()).append("\r\n");
+            response.getHeaders().forEach((k,v) -> sb.append(k).append(": ").append(v).append("\r\n"));
+            sb.append("\r\n");
+            out.write(sb.toString().getBytes(StandardCharsets.UTF_8));
+            //if response have body include it
+            if(bodyResponse != null) out.write(response.getBody());
+            out.flush();
         }
-        return header + "Error!";
     }
 
-    public static void staticfiles(String localFilesPath) {
+
+    /**
+     *Configures the directory for serving static files.
+     * If the directory does not exist, it will be created automatically.
+     * @param path the relative path where static files will be served from
+     * @throws IOException if an error occurs while creating the directory
+     * @throws IllegalArgumentException if the path is null, blank, not a directory, or not readable
+     **/
+    public static void staticfiles(String path) throws IOException, IllegalArgumentException {
+        if(path == null || path.isEmpty()) throw new IllegalArgumentException("Static Files: path cannot be null/blank");
+        String root = "src/main";
+        Path configured = Paths.get(root + path);
+
+        if (Files.exists(configured)) {
+            if (!Files.isDirectory(configured)) {
+                throw new IllegalArgumentException("staticfiles: no es un directorio: " + configured);
+            }
+            if (!Files.isReadable(configured)) {
+                throw new IllegalArgumentException("staticfiles: directorio no legible: " + configured);
+            }
+        } else {
+            Files.createDirectories(configured);
+        }
+        dir = root + path;
     }
 
-    public static void start(String[] args) throws IOException, URISyntaxException {
-        runServer(args);
+    /**
+     * Processes an incoming GET request by resolving the target service and executing it.
+     * @param requri the URI of the requested resource (must start with "/app")
+     * @return Response
+     */
+    private static HttpResponse invokeService(URI requri) throws InvocationTargetException, IllegalAccessException {
+        HttpRequest req = new HttpRequest(requri);
+        HttpResponse res = new HttpResponse();
+        String servicePath = requri.getPath().substring(4);
+        Method m = services.get(servicePath);
+        if(m == null) {
+            return res.status(405).body("Service not found: "+servicePath);
+        }
+        String[] values = req.getParamValues(m);
+
+        Object o = m.invoke(null,values);
+        if(o == null){
+            return res.status(204);
+        }
+        return res.status(200).body(o);
     }
 
-    public static String defaultResponse() {
-        return "HTTP/1.1 200 OK\r\n"
-                + "content-type: text/html\r\n"
-                + "\r\n"
-                + "<!DOCTYPE html>\n"
-                + "<html>\n"
-                + "<head>\n"
-                + "<title>Form Example</title>\n"
-                + "<meta charset=\"UTF-8\">\n"
-                + "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n"
-                + "</head>\n"
-                + "<body>\n"
-                + "<h1>Form with GET</h1>\n"
-                + "<form action=\"/hello\">\n"
-                + "<label for=\"name\">Name:</label><br>\n"
-                + "<input type=\"text\" id=\"name\" name=\"name\" value=\"John\"><br><br>\n"
-                + "<input type=\"button\" value=\"Submit\" onclick=\"loadGetMsg()\">\n"
-                + "</form>\n"
-                + "<div id=\"getrespmsg\"></div>\n"
-                + " \n"
-                + "<script>\n"
-                + "function loadGetMsg() {\n"
-                + "let nameVar = document.getElementById(\"name\").value;\n"
-                + "const xhttp = new XMLHttpRequest();\n"
-                + "xhttp.onload = function() {\n"
-                + "document.getElementById(\"getrespmsg\").innerHTML =\n"
-                + "this.responseText;\n"
-                + "}\n"
-                + "xhttp.open(\"GET\", \"/app/hello?name=\"+nameVar);\n"
-                + "xhttp.send();\n"
-                + "}\n"
-                + "</script>\n"
-                + " \n"
-                + "<h1>Form with POST</h1>\n"
-                + "<form action=\"/hellopost\">\n"
-                + "<label for=\"postname\">Name:</label><br>\n"
-                + "<input type=\"text\" id=\"postname\" name=\"name\" value=\"John\"><br><br>\n"
-                + "<input type=\"button\" value=\"Submit\" onclick=\"loadPostMsg(postname)\">\n"
-                + "</form>\n"
-                + " \n"
-                + "<div id=\"postrespmsg\"></div>\n"
-                + " \n"
-                + "<script>\n"
-                + "function loadPostMsg(name){\n"
-                + "let url = \"/hellopost?name=\" + name.value;\n"
-                + " \n"
-                + "fetch (url, {method: 'POST'})\n"
-                + ".then(x => x.text())\n"
-                + ".then(y => document.getElementById(\"postrespmsg\").innerHTML = y);\n"
-                + "}\n"
-                + "</script>\n"
-                + "</body>\n"
-                + "</html>";
+    /**
+     * Manage disk files.
+     *
+     * @param path resource of the request
+     * @throws IOException if an error occurs while writing to the output stream
+     * @return Response
+     */
+    private static HttpResponse getResources(String path) throws IOException {
+        String fullPath = dir;
+        if(path.equals("/")){
+            fullPath += "/" + "pages/index.html";
+        }
+        else if(path.endsWith("html")){
+            fullPath += "/" + "pages" + path;
+        }else {
+            fullPath += path;
+        }
+        if(fullPath.endsWith("html") || fullPath.endsWith("css") || fullPath.endsWith("js")){
+            return sendTextFile(fullPath);
+        }
+        return sendImageFile(fullPath);
     }
+    /**
+     * Read text files (html, css and javascript).
+     *
+     * @param filePath full path of the file
+     * @throws IOException if an error occurs while reading the file
+     * @return File content
+     */
+    private static String readFile(String filePath) throws IOException {
+        StringBuilder content = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                content.append(line).append("\n");
+            }
+        }
+        return content.toString();
+    }
+    /**
+     * Gets the header based on the file extension.
+     * @param path full path of the file
+     * @return content-type header
+     */
+    private static String getHeader(String path){
+        if (path.endsWith(".html") || path.endsWith(".htm")) return "text/html";
+        if (path.endsWith(".css"))  return "text/css";
+        if (path.endsWith(".js"))   return "application/javascript";
+        if (path.endsWith(".png"))  return "image/png";
+        if (path.endsWith(".jpg") || path.endsWith(".jpeg")) return "image/jpeg";
+        return "application/octet-stream";
+    }
+    /**
+     * Read and send the file text (html, css or javascript)
+     * @param fullPath full path of the file
+     * @throws IOException if an error occurs while writing to the output stream
+     * @return Response with the text file
+     */
+    private static HttpResponse sendTextFile(String fullPath)throws IOException{
+        byte[] output = readFile(fullPath).getBytes(StandardCharsets.UTF_8);
+        return new HttpResponse(200,output).contentType(getHeader(fullPath));
+    }
+    /**
+     * Read and send images (png, jpg or jpeg)
+     * @param fullPath full path of the file
+     * @throws IOException if an error occurs while reading the file image
+     * @return Response with the image
+     */
+    private static HttpResponse sendImageFile(String fullPath)throws IOException {
+        Path filePath = Paths.get(fullPath);
+        if (!Files.exists(filePath)) {
+            return new HttpResponse(404,"Image not found");
+        }
+        byte[] fileContent = Files.readAllBytes(filePath);
+        return new HttpResponse(200,fileContent)
+                .contentType(getHeader(fullPath))
+                .header("Content-Length",String.valueOf(fileContent.length));
+    }
+    /**
+     * Saves task in memory, by post request is not implemented using lambdas
+     * Since POST endpoints are not yet implemented using lambdas
+     * this method handles the task creation directly.
+     *  It uses the singleton to add the task
+     * @param name name of the task
+     * @param description description of the task
+     * @return Response with the created task
+     */
+    private static HttpResponse saveTask(String name, String description){
+        Task newTask = getTaskManager().addTask(name,description);
+        return new HttpResponse(200,newTask).contentType("application/json");
+    }
+
+
+
+
 
 
 }
