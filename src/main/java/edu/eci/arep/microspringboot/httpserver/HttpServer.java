@@ -113,9 +113,9 @@ public class HttpServer {
     private static HttpResponse invokeService(URI requri) throws InvocationTargetException, IllegalAccessException {
         HttpRequest req = new HttpRequest(requri);
         HttpResponse res = new HttpResponse();
-        String[] url = requri.getPath().split("/");
-        String basePath = "/"+url[1];
-        String resourcePath = "/"+(url.length > 2 ? url[2] : "");
+        String basePath = req.getBasePath(services.keySet());
+        if(basePath == null) return res.status(404).body("Base path not found");
+        String resourcePath = req.getSourcePath(basePath);
         Method m = services.get(basePath).get(resourcePath);
         if(m == null) {
             return res.status(405).body("Service not found: "+ basePath+resourcePath);

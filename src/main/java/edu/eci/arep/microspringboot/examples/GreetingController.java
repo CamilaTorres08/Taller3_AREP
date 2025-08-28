@@ -34,17 +34,6 @@ public class GreetingController {
 	public static void sendNoBody(@RequestParam(value = "name", defaultValue = "World") String name,@RequestParam(value = "gender", defaultValue = "female") String gender) {
 		System.out.println("Hello " + name + " Gender: " + gender);
 	}
-	@GetMapping
-	public static String calculate(@RequestParam(value = "operation", defaultValue = "+") String operation,@RequestParam(value = "a", defaultValue = "1") String a,@RequestParam(value = "b", defaultValue = "1") String b){
-		int numbera = Integer.parseInt(a);
-		int numberb = Integer.parseInt(b);
-		String result = "Result: ";
-        return switch (operation) {
-            case "+" -> result + (numbera + numberb);
-            case "-" -> result + (numbera - numberb);
-            case "*" -> result + (numbera * numberb);
-            default -> result + (numberb > 0 ? numbera / numberb : "Cannot divide");
-        };
-    }
+
 
 }

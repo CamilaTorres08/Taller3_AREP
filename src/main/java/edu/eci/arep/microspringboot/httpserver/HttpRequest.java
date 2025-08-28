@@ -11,6 +11,9 @@ import java.lang.reflect.Method;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  *
@@ -36,6 +39,24 @@ public class HttpRequest {
                 parameters.put(keyValue[0], keyValue[1]);
             }
         }
+    }
+    /**
+     * Gets the base path
+     */
+    public String getBasePath(Set<String> paths){
+        String fullPath = uri.getPath();
+        Optional<String> path = paths.stream().filter(x -> fullPath.startsWith(x)).findFirst();
+        if(path.isPresent()){
+            return path.get();
+        }
+        return null;
+    }
+    /**
+     * Gets the source path
+     */
+    public String getSourcePath(String basePath){
+        String resourcePath = uri.getPath().substring(basePath.length());
+        return resourcePath.isEmpty() ? "/" : resourcePath;
     }
 
     /**
