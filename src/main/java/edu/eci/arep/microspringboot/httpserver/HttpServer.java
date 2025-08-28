@@ -51,9 +51,9 @@ public class HttpServer {
             Logger.getLogger(HttpServer.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
-    public static void start(int serverPort) throws Exception {
+    public static void start(int serverPort, String[] args) throws Exception {
         port = serverPort;
-        runServer(new String[]{});
+        runServer(args);
     }
     public static void runServer(String[] args) throws IOException {
         loadServices(args);
@@ -203,9 +203,10 @@ public class HttpServer {
         HttpRequest req = new HttpRequest(requri);
         HttpResponse res = new HttpResponse();
         String[] url = requri.getPath().split("/");
+        System.out.println("PATH: "+requri.getPath());
         String basePath = "/"+url[1];
-        String resourcePath = "/"+url[2];
-
+        String resourcePath = "/"+(url.length > 2 ? url[2] : "");
+        System.out.println("resourcePath: "+resourcePath);
         Method m = services.get(basePath).get(resourcePath);
         if(m == null) {
             return res.status(405).body("Service not found: "+ basePath);

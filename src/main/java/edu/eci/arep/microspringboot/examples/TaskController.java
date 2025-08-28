@@ -13,7 +13,7 @@ import static edu.eci.arep.microspringboot.classes.TaskManager.getTaskManager;
 @RestController
 @RequestMapping("/task")
 public class TaskController {
-    @GetMapping("/tasks")
+    @GetMapping
     public static List<Task> getTasks(@RequestParam(value = "name", defaultValue = "All") String name) {
         if(name.equals("All")) return getTaskManager().getTasks();
         return getTaskManager().getTasksByName(name);
