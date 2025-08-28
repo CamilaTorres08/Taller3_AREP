@@ -1,7 +1,7 @@
 package edu.eci.arep.microspringboot.httpserver;
 
 import edu.eci.arep.microspringboot.annotations.GetMapping;
-import edu.eci.arep.microspringboot.annotations.RequestParam;
+import edu.eci.arep.microspringboot.annotations.RequestMapping;
 import edu.eci.arep.microspringboot.annotations.RestController;
 import edu.eci.arep.microspringboot.classes.Task;
 
@@ -9,7 +9,6 @@ import java.net.*;
 import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -23,20 +22,30 @@ import static edu.eci.arep.microspringboot.classes.TaskManager.getTaskManager;
 
 public class HttpServer {
 
-    public static Map<String, Method> services = new HashMap();
+    public static Map<String,Map<String, Method>> services = new HashMap();
     static String dir;
     static int port = 35000;
+    /**
+     *Loads GET handlers from the controller class named in args[0].
+     * If the class is annotated with @RestController, each method annotated with
+     * @GetMapping is registered in the global 'services' map using its
+     * @GetMapping.value() as the dispatch key.
+     * @param args where args[0] is the fully qualified controller class name.
+     **/
     public static void loadServices(String[] args) {
         try {
             Class c = Class.forName(args[0]);
             if(c.isAnnotationPresent(RestController.class)){
                 Method[] methods = c.getDeclaredMethods();
+                RequestMapping annotation = (RequestMapping) c.getAnnotation(RequestMapping.class);
+                Map<String,Method> methodValues = new HashMap<>();
                 for(Method m : methods){
                     if(m.isAnnotationPresent(GetMapping.class)){
                         String mapping = m.getAnnotation(GetMapping.class).value();
-                        services.put(mapping, m);
+                        methodValues.put(mapping, m);
                     }
                 }
+                if(!methodValues.isEmpty()) services.put(annotation.value(), methodValues);
             }
         } catch (ClassNotFoundException ex) {
             Logger.getLogger(HttpServer.class.getName()).log(Level.SEVERE, null, ex);
@@ -46,7 +55,7 @@ public class HttpServer {
         port = serverPort;
         runServer(new String[]{});
     }
-    public static void runServer(String[] args) throws IOException, URISyntaxException {
+    public static void runServer(String[] args) throws IOException {
         loadServices(args);
 
         ServerSocket serverSocket = null;
@@ -114,9 +123,7 @@ public class HttpServer {
             URI requestUri = new URI(dividedUri[1]);
             String path = requestUri.getPath();
             String method = dividedUri[0];
-            if(method.equals("GET") && path.startsWith("/app")) {
-                response = invokeService(requestUri);
-            }else if(method.equals("POST") && path.startsWith("/app")){
+            if(method.equals("POST")){
                 String taskName = "";
                 String taskDescription = "";
                 String[] values = body.split(",");
@@ -131,8 +138,11 @@ public class HttpServer {
                 else response = new HttpResponse(400,"Missing values, Task Name and Task Description are required");
 
             }else if(method.equals("GET") && (path.equals("/") || path.endsWith("html") || path.endsWith("js") || path.endsWith("css")
-                    || path.endsWith("png") || path.endsWith("jpg") || path.endsWith("jpeg"))){
+                    || path.endsWith("png") || path.endsWith("jpg") || path.endsWith("jpeg"))) {
                 response = getResources(path);
+            }
+            else if (method.equals("GET")) {
+                    response = invokeService(requestUri);
             }else{
                 response = new HttpResponse(405,"Method "+method+" "+path+" not supported");
             }
@@ -186,16 +196,19 @@ public class HttpServer {
 
     /**
      * Processes an incoming GET request by resolving the target service and executing it.
-     * @param requri the URI of the requested resource (must start with "/app")
+     * @param requri the URI of the requested resource (must start with)
      * @return Response
      */
     private static HttpResponse invokeService(URI requri) throws InvocationTargetException, IllegalAccessException {
         HttpRequest req = new HttpRequest(requri);
         HttpResponse res = new HttpResponse();
-        String servicePath = requri.getPath().substring(4);
-        Method m = services.get(servicePath);
+        String[] url = requri.getPath().split("/");
+        String basePath = "/"+url[1];
+        String resourcePath = "/"+url[2];
+
+        Method m = services.get(basePath).get(resourcePath);
         if(m == null) {
-            return res.status(405).body("Service not found: "+servicePath);
+            return res.status(405).body("Service not found: "+ basePath);
         }
         String[] values = req.getParamValues(m);
 
@@ -285,7 +298,7 @@ public class HttpServer {
                 .header("Content-Length",String.valueOf(fileContent.length));
     }
     /**
-     * Saves task in memory, by post request is not implemented using lambdas
+     * Saves task in memory
      * Since POST endpoints are not yet implemented using lambdas
      * this method handles the task creation directly.
      *  It uses the singleton to add the task
@@ -297,10 +310,5 @@ public class HttpServer {
         Task newTask = getTaskManager().addTask(name,description);
         return new HttpResponse(200,newTask).contentType("application/json");
     }
-
-
-
-
-
 
 }

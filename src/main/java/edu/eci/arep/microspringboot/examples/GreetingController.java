@@ -5,6 +5,7 @@
 package edu.eci.arep.microspringboot.examples;
 
 import edu.eci.arep.microspringboot.annotations.GetMapping;
+import edu.eci.arep.microspringboot.annotations.RequestMapping;
 import edu.eci.arep.microspringboot.annotations.RequestParam;
 import edu.eci.arep.microspringboot.annotations.RestController;
 import edu.eci.arep.microspringboot.classes.Task;
@@ -19,6 +20,7 @@ import static edu.eci.arep.microspringboot.classes.TaskManager.getTaskManager;
  * @author andrea.torres-g
  */
 @RestController
+@RequestMapping("/app")
 public class GreetingController {
 
 
@@ -39,11 +41,6 @@ public class GreetingController {
 	@GetMapping("/body")
 	public static void sendNoBody(@RequestParam(value = "name", defaultValue = "World") String name,@RequestParam(value = "gender", defaultValue = "female") String gender) {
 		System.out.println("Hello " + name + " Gender: " + gender);
-	}
-	@GetMapping("/tasks")
-	public static List<Task> getTasks(@RequestParam(value = "name", defaultValue = "All") String name) {
-		if(name.equals("All")) return getTaskManager().getTasks();
-		return getTaskManager().getTasksByName(name);
 	}
 
 }

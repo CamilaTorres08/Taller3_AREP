@@ -10,7 +10,7 @@ function loadTasks() {
     }
     const value = document.getElementById("filter").innerText;
     console.log("VALUE: ",value);
-    fetch("http://localhost:35000/app/tasks?name="+value,
+    fetch("http://localhost:35000/task/tasks?name="+value,
         {
             method: "GET"
         })
@@ -47,7 +47,7 @@ function addTask(){
         alert('The description is too long');
         return;
     }
-    fetch("http://localhost:35000/app/saveTask",
+    fetch("http://localhost:35000/task/saveTask",
         {
             headers: {
                 "Accept": "application/json",
