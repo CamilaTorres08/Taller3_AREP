@@ -109,6 +109,31 @@ public class HttpServer {
         serverSocket.close();
     }
     /**
+     * Processes an incoming GET request by resolving the target service and executing it.
+     * @param requri the URI of the requested resource (must start with)
+     * @return Response
+     */
+    private static HttpResponse invokeService(URI requri) throws InvocationTargetException, IllegalAccessException {
+        HttpRequest req = new HttpRequest(requri);
+        HttpResponse res = new HttpResponse();
+        String[] url = requri.getPath().split("/");
+        System.out.println("PATH: "+requri.getPath());
+        String basePath = "/"+url[1];
+        String resourcePath = "/"+(url.length > 2 ? url[2] : "");
+        System.out.println("resourcePath: "+resourcePath);
+        Method m = services.get(basePath).get(resourcePath);
+        if(m == null) {
+            return res.status(405).body("Service not found: "+ basePath);
+        }
+        String[] values = req.getParamValues(m);
+
+        Object o = m.invoke(null,values);
+        if(o == null){
+            return res.status(204);
+        }
+        return res.status(200).body(o);
+    }
+    /**
      * Manages an HTTP request by processing the method, resource, and body,
      * and writing the corresponding response.
      * @param inputLine the first line of the HTTP request (contains method and resource)
@@ -194,31 +219,6 @@ public class HttpServer {
         dir = root + path;
     }
 
-    /**
-     * Processes an incoming GET request by resolving the target service and executing it.
-     * @param requri the URI of the requested resource (must start with)
-     * @return Response
-     */
-    private static HttpResponse invokeService(URI requri) throws InvocationTargetException, IllegalAccessException {
-        HttpRequest req = new HttpRequest(requri);
-        HttpResponse res = new HttpResponse();
-        String[] url = requri.getPath().split("/");
-        System.out.println("PATH: "+requri.getPath());
-        String basePath = "/"+url[1];
-        String resourcePath = "/"+(url.length > 2 ? url[2] : "");
-        System.out.println("resourcePath: "+resourcePath);
-        Method m = services.get(basePath).get(resourcePath);
-        if(m == null) {
-            return res.status(405).body("Service not found: "+ basePath);
-        }
-        String[] values = req.getParamValues(m);
-
-        Object o = m.invoke(null,values);
-        if(o == null){
-            return res.status(204);
-        }
-        return res.status(200).body(o);
-    }
 
     /**
      * Manage disk files.

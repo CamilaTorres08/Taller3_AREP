@@ -55,7 +55,7 @@ public class ControllerTests {
     public void testGreetingWithCustomName() throws Exception {
         HttpURLConnection getConnection = urlConnection.createGetConnection("/app/greeting?name=Juan");
         String response = urlConnection.readResponse(getConnection);
-        assertEquals("Hola Juan", response.trim());
+        assertEquals("Hello Juan", response.trim());
         getConnection.disconnect();
     }
 
