@@ -1,4 +1,6 @@
 package edu.eci.arep.microspringboot;
+import edu.eci.arep.microspringboot.annotations.RequestMapping;
+import edu.eci.arep.microspringboot.examples.TaskController;
 import org.junit.*;
 import java.net.*;
 
@@ -22,7 +24,7 @@ public class HttpServerTests {
         Thread.sleep(2000);
     }
     @AfterClass
-    public static void tearDown() throws Exception {
+    public static void tearDown() {
         if (serverThread != null) {
             serverThread.interrupt();
         }
@@ -83,6 +85,19 @@ public class HttpServerTests {
     }
 
     /*
+     *Testing if TaskController has the RequestMapping annotation and the correct path /task
+     */
+    @Test
+    public void testControllerHasRequestMappingAnnotation() {
+        Class<?> controllerClass = TaskController.class;
+        boolean hasRequestMapping = controllerClass.isAnnotationPresent(RequestMapping.class);
+        assertTrue("Controller should have @RequestMapping annotation", hasRequestMapping);
+
+        RequestMapping mapping = controllerClass.getAnnotation(RequestMapping.class);
+        assertEquals("Should map to /task", "/task", mapping.value());
+    }
+
+    /*
      *Get all tasks successfully
      * In the lambda, we did not specify the content-type and the status 200 OK,
      * the server should return automatically 200 OK and the header content-type : application/json automatically with the
@@ -101,7 +116,7 @@ public class HttpServerTests {
         assertEquals("Should return 200 OK",200, responseCode);
 
         String responseBody = urlConnection.readResponse(getConnection);
-        assertTrue("Response should contain tasks",responseBody.length() > 0);
+        assertFalse("Response should contain tasks", responseBody.isEmpty());
 
         String responseHeader = getConnection.getHeaderField("Content-Type");
         assertEquals("Should return application/json",responseHeader,"application/json");
@@ -125,7 +140,7 @@ public class HttpServerTests {
 
         String responseBody = urlConnection.readResponse(getConnection);
         String[] inner = responseBody.trim().substring(1, responseBody.length()-1).trim().split("},");
-        assertTrue("Response should contain one task",inner.length == 1);;
+        assertEquals("Response should contain one task", 1, inner.length);
         getConnection.disconnect();
     }
 
@@ -142,5 +157,7 @@ public class HttpServerTests {
 
         connection.disconnect();
     }
+
+
 
 }

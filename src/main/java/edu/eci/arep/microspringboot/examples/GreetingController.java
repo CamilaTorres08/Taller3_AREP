@@ -5,24 +5,16 @@
 package edu.eci.arep.microspringboot.examples;
 
 import edu.eci.arep.microspringboot.annotations.GetMapping;
-import edu.eci.arep.microspringboot.annotations.RequestMapping;
 import edu.eci.arep.microspringboot.annotations.RequestParam;
 import edu.eci.arep.microspringboot.annotations.RestController;
-import edu.eci.arep.microspringboot.classes.Task;
 
-import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
-
-import static edu.eci.arep.microspringboot.classes.TaskManager.getTaskManager;
 
 /**
  *
  * @author andrea.torres-g
  */
 @RestController
-@RequestMapping("/app")
 public class GreetingController {
-
 
 	@GetMapping("/greeting")
 	public static String greeting(@RequestParam(value = "name", defaultValue = "World") String name) {

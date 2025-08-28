@@ -14,8 +14,7 @@ import java.net.HttpURLConnection;
 
 import static edu.eci.arep.microspringboot.httpserver.HttpServer.start;
 import static edu.eci.arep.microspringboot.httpserver.HttpServer.staticfiles;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class ControllerTests {
     private static Thread serverThread;
@@ -32,7 +31,7 @@ public class ControllerTests {
         Thread.sleep(2000);
     }
     @AfterClass
-    public static void tearDown() throws Exception {
+    public static void tearDown() {
         if (serverThread != null) {
             serverThread.interrupt();
         }
@@ -136,13 +135,10 @@ public class ControllerTests {
      *Testing if GreetingController has the RequestMapping annotation
      */
     @Test
-    public void testControllerHasRequestMappingAnnotation() {
+    public void testControllerHasNotRequestMappingAnnotation() {
         Class<?> controllerClass = GreetingController.class;
         boolean hasRequestMapping = controllerClass.isAnnotationPresent(RequestMapping.class);
-        assertTrue("Controller should have @RequestMapping annotation", hasRequestMapping);
-
-        RequestMapping mapping = controllerClass.getAnnotation(RequestMapping.class);
-        assertEquals("Should map to /app", "/app", mapping.value());
+        assertFalse("Controller should have @RequestMapping annotation", hasRequestMapping);
     }
     /*
      *Testing if GreetingController has GetMapping annotation

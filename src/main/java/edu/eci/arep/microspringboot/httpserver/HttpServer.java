@@ -22,19 +22,16 @@ import static edu.eci.arep.microspringboot.classes.TaskManager.getTaskManager;
 
 public class HttpServer {
 
-    public static Map<String,Map<String, Method>> services = new HashMap();
+    public static Map<String,Map<String, Method>> services = new HashMap<>();
     static String dir;
     static int port = 35000;
     /**
      *Loads GET handlers from the controller class named in args[0].
-     * If the class is annotated with @RestController, each method annotated with
-     * @GetMapping is registered in the global 'services' map using its
-     * @GetMapping.value() as the dispatch key.
      * @param args where args[0] is the fully qualified controller class name.
      **/
     public static void loadServices(String[] args) {
         try {
-            Class c = Class.forName(args[0]);
+            Class<?> c = Class.forName(args[0]);
             if(c.isAnnotationPresent(RestController.class)){
                 Method[] methods = c.getDeclaredMethods();
                 RequestMapping annotation = (RequestMapping) c.getAnnotation(RequestMapping.class);
@@ -45,7 +42,7 @@ public class HttpServer {
                         methodValues.put(mapping, m);
                     }
                 }
-                if(!methodValues.isEmpty()) services.put(annotation.value(), methodValues);
+                if(!methodValues.isEmpty()) services.put(annotation != null ? annotation.value() : "/app", methodValues);
             }
         } catch (ClassNotFoundException ex) {
             Logger.getLogger(HttpServer.class.getName()).log(Level.SEVERE, null, ex);
@@ -66,7 +63,7 @@ public class HttpServer {
             System.exit(1);
         }
         Socket clientSocket = null;
-        Boolean running = true;
+        boolean running = true;
         while (running) {
             try {
                 System.out.println("Listo para recibir ...");
@@ -117,13 +114,11 @@ public class HttpServer {
         HttpRequest req = new HttpRequest(requri);
         HttpResponse res = new HttpResponse();
         String[] url = requri.getPath().split("/");
-        System.out.println("PATH: "+requri.getPath());
         String basePath = "/"+url[1];
         String resourcePath = "/"+(url.length > 2 ? url[2] : "");
-        System.out.println("resourcePath: "+resourcePath);
         Method m = services.get(basePath).get(resourcePath);
         if(m == null) {
-            return res.status(405).body("Service not found: "+ basePath);
+            return res.status(405).body("Service not found: "+ basePath+resourcePath);
         }
         String[] values = req.getParamValues(m);
 
