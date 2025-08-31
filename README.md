@@ -28,17 +28,18 @@ los encabezados (`Content-Type`,`Content-Lenght`, etc) y el cuerpo a enviar.
 ### HttpServer
 Es el núcleo del framework, se encarga principalmente de:
 
-* Construir un mapa de servicios a partir de las anotaciones presentes en los POJOs
-`RestController, GetMapping, RequestMapping`
+* Configurar el classpath mediante `setClassPath("ruta.del.paquete")`.
+* Detectar automaticamente las clases anotadas con `@RestController` y, a partir de ellas, registrar
+los valores de `@GetMapping` y `@RequestMapping`
 
   <img src="readmeImages/services.png">
 
-  La anterior imagen muestra la forma en cómo el servidor almacena el valor de la anotaciones 
+  La anterior imagen muestra cómo el servidor almacena internamente las anotaciones:
 
   `Map<String,Map<String, Method>> services = new HashMap<>();`
 
-  Donde la clave externa corresponde al valor de la anotación `RequestMapping` y el valor es otro mapa que asocia
-  el valor de la anotación `GetMapping` con el método `Method` que debe ejecutarse cuando reciba la solicitud
+  Donde la clave externa corresponde al valor de la anotación `@RequestMapping` y el valor es otro mapa que asocia
+  el valor de la anotación `@GetMapping` con el método `Method` que debe ejecutarse cuando reciba la solicitud
   correspondiente.
 
 * Servir archivos estáticos (HTML, CSS, JS, imágenes) desde un directorio configurado mediante `staticfiles(path)`.
@@ -84,7 +85,9 @@ También es posible definir rutas más largas y jerárquicas:
 public class GreetingController {}
 ```
 
-*Nota: Si no se define la anotación y/o se deja vacío, el valor por defecto será `/app`.*
+*Nota: Si no se define la anotación `@RequestMapping` o se deja sin valor, la ruta base
+asignada por defecto será `/app`. Para evitar conflictos entre controladores, se recomienda
+que cada clase `@RestController` defina su propia ruta base.*
 
 ### Definir métodos GET 
 Cada endpoint **GET** se debe definir con la anotación `@GetMapping["ruta"]`:
@@ -167,15 +170,11 @@ Antes de comenzar, es necesario tener instalado lo siguiente en el entorno:
     ```
     mvn clean install
     ```
-3. Cargar el POJO (Controller) que desea probar, puede encontrarlos en la carpeta `examples` o crear uno y luego 
-  ejecutar desde línea de comandos:
+3. Ejecutar el servidor
     ```
-    java -cp target/classes edu.eci.arep.microspringboot.MicroSpringBoot edu.eci.arep.microspringboot.[ruta al controller]
+    mvn exec:java
     ```
-    Por ejemplo, probar `GreetingController`:
-    ```
-      java -cp target/classes edu.eci.arep.microspringboot.MicroSpringBoot edu.eci.arep.microspringboot.examples.GreetingController
-    ```
+   O directamente en la IDE dando clic en *Run* sobre el archivo `MicroSpringBoot`
   
 4. Abrir la aplicación en el navegador 
     ```
@@ -213,10 +212,7 @@ Para la ejecución de estas pruebas, se definieron controllers cuya implementaci
 
 #### TaskController
 
-Se utilizó la aplicación web incluida en el proyecto, para usarla, se ejecuta los pasos 3 y 4 de la [sección Instalación](#instalación), asegurandose
-de cargar el POJO correspondiente a TaskController. 
-
-Una vez realizado, al usar el buscador de la interfáz se realiza una petición a `http://localhost:35000/task?name=[value]`
+Al usar el buscador de la interfáz se realiza una petición a `http://localhost:35000/task?name=[value]`
 
 <img src="readmeImages/img_7.png">
 

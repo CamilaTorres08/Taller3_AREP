@@ -10,6 +10,7 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 
+import static edu.eci.arep.microspringboot.httpserver.HttpServer.setClassPath;
 import static edu.eci.arep.microspringboot.httpserver.HttpServer.staticfiles;
 
 /**
@@ -22,6 +23,8 @@ public class MicroSpringBoot {
         System.out.println("Starting microspringboot");
         //set the directory of static files
         staticfiles("/resources");
+        //set the classpath to search the classes
+        setClassPath("edu.eci.arep.microspringboot");
 //        //value of pi
 //        get("/pi", (req, resp) -> {
 //            return resp.body(String.valueOf(Math.PI)).contentType("text/html");

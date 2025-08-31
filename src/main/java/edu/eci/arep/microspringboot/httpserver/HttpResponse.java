@@ -12,7 +12,7 @@ import static edu.eci.arep.microspringboot.helpers.JsonConverter.toJson;
 
 /**
  *
- * @author luisdanielbenavidesnavarro
+ * @author andrea.torres-g
  */
 public class HttpResponse {
     int statusCode=200;

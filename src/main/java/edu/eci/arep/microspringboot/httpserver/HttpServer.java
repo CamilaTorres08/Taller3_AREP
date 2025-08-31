@@ -14,46 +14,42 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static edu.eci.arep.microspringboot.classes.TaskManager.getTaskManager;
+import static edu.eci.arep.microspringboot.helpers.ClassesConverter.findClasses;
 
 public class HttpServer {
 
     public static Map<String,Map<String, Method>> services = new HashMap<>();
     static String dir;
     static int port = 35000;
+    static String classPath = "edu.eci.arep";
+
     /**
-     *Loads GET handlers from the controller class named in args[0].
-     * @param args where args[0] is the fully qualified controller class name.
-     **/
-    public static void loadServices(String[] args) {
-        try {
-            Class<?> c = Class.forName(args[0]);
-            if(c.isAnnotationPresent(RestController.class)){
-                Method[] methods = c.getDeclaredMethods();
-                RequestMapping annotation = (RequestMapping) c.getAnnotation(RequestMapping.class);
-                Map<String,Method> methodValues = new HashMap<>();
-                for(Method m : methods){
-                    if(m.isAnnotationPresent(GetMapping.class)){
-                        String mapping = m.getAnnotation(GetMapping.class).value();
-                        methodValues.put(mapping, m);
-                    }
-                }
-                if(!methodValues.isEmpty()) services.put(annotation != null ? annotation.value() : "/app", methodValues);
-            }
-        } catch (ClassNotFoundException ex) {
-            Logger.getLogger(HttpServer.class.getName()).log(Level.SEVERE, null, ex);
-        }
-    }
-    public static void start(int serverPort, String[] args) throws Exception {
-        port = serverPort;
-        runServer(args);
-    }
+     * Starts the server
+     * @param args optional startup arguments
+     * @throws IOException  if an I/O error occurs during server initialization
+     */
     public static void runServer(String[] args) throws IOException {
-        loadServices(args);
+        try {
+            if (args.length == 0) {
+                Set<Class<?>> classes = findClasses(classPath);
+                for (Class<?> c : classes) {
+                    loadServices(c);
+                }
+            } else {
+                Class<?> c = Class.forName(args[0]);
+                loadServices(c);
+            }
+        }catch (ClassNotFoundException e) {
+                System.err.println("Could not load class.");
+                System.exit(1);
+        }
 
         ServerSocket serverSocket = null;
         try {
@@ -104,6 +100,37 @@ public class HttpServer {
             clientSocket.close();
         }
         serverSocket.close();
+    }
+    /**
+     *Loads GET handlers methods from a given class if is annotated with @RestController and @RequestMapping annotations.
+     * @param c the class to inspect.
+     **/
+    public static void loadServices(Class<?> c) {
+        if(c.isAnnotationPresent(RestController.class)){
+            Method[] methods = c.getDeclaredMethods();
+            RequestMapping annotation = (RequestMapping) c.getAnnotation(RequestMapping.class);
+            Map<String,Method> methodValues = new HashMap<>();
+            for(Method m : methods){
+                if(m.isAnnotationPresent(GetMapping.class)){
+                    String mapping = m.getAnnotation(GetMapping.class).value();
+                    methodValues.put(mapping, m);
+                }
+            }
+            if(!methodValues.isEmpty()) services.put(annotation != null ? annotation.value() : "/app", methodValues);
+        }
+    }
+    /**
+     * Starts the server on the given port (This method is primarily intended for testing purposes)
+     */
+    public static void start(int serverPort, String[] args) throws Exception {
+        port = serverPort;
+        runServer(args);
+    }
+    /**
+     * Assigns the class path to search the classes
+     */
+    public static void setClassPath(String path) {
+        classPath = path;
     }
     /**
      * Processes an incoming GET request by resolving the target service and executing it.
