@@ -17,7 +17,7 @@ Al finalizar, se contará con un prototipo mínimo que demuestra cómo Java, med
 
 ## Arquitectura
 La siguiente figura ilustra los componentes principales, sus responsabilidades y las relaciones entre ellos.
-<img src="ReadmeImages/componentes.png">
+<img src="readmeImages/componentes.png">
 
 ### HttpRequest
 Encapsula la información de la solicitud HTTP recibida. Gestiona la URI y los parámetros de consulta (`query params`).
@@ -30,7 +30,7 @@ Es el núcleo del framework, se encarga principalmente de:
 * Construir un mapa de servicios a partir de las anotaciones presentes en los POJOs
 `RestController, GetMapping, RequestMapping`
 
-  <img src="ReadmeImages/services.png">
+  <img src="readmeImages/services.png">
 
   La anterior imagen muestra la forma en cómo el servidor almacena el valor de la anotaciones 
 
@@ -188,27 +188,27 @@ Para la ejecución de estas pruebas, se definieron controllers cuya implementaci
 #### GreetingController
 `http://localhost:35000/app/greeting`
 
-<img src="ReadmeImages/img_5.png">
+<img src="readmeImages/img_5.png">
 
 `http://localhost:35000/app/greeting?name=Camila`
 
-<img src="ReadmeImages/img_1.png">
+<img src="readmeImages/img_1.png">
 
 `http://localhost:35000/app/void`
 
-<img src="ReadmeImages/img_2.png">
+<img src="readmeImages/img_2.png">
 
 `http://localhost:35000/app/params`
 
-<img src="ReadmeImages/img_3.png">
+<img src="readmeImages/img_3.png">
 
 `http://localhost:35000/app/params?name=Juan&gender=male&age=20`
 
-<img src="ReadmeImages/img_6.png">
+<img src="readmeImages/img_6.png">
 
 `http://localhost:35000/app/body`
 
-<img src="ReadmeImages/img_4.png">
+<img src="readmeImages/img_4.png">
 
 #### TaskController
 
@@ -217,32 +217,32 @@ de cargar el POJO correspondiente a TaskController.
 
 Una vez realizado, al usar el buscador de la interfáz se realiza una petición a `http://localhost:35000/task?name=[value]`
 
-<img src="ReadmeImages/img_7.png">
+<img src="readmeImages/img_7.png">
 
 `http://localhost:35000/task`
 
-<img src="ReadmeImages/img_8.png">
+<img src="readmeImages/img_8.png">
 
 #### CalculatorController
 
 `http://localhost:35000/v1/calculate/maths`
 
-<img src="ReadmeImages/img_9.png">
+<img src="readmeImages/img_9.png">
 
 `http://localhost:35000/v1/calculate/maths?operation=*&a=4&b=20`
 
-<img src="ReadmeImages/img_10.png">
+<img src="readmeImages/img_10.png">
 
 `http://localhost:35000/v1/calculate/maths/square?number=5`
 
-<img src="ReadmeImages/img_11.png">
+<img src="readmeImages/img_11.png">
 
 #### Prueba de error
 Se validan los casos en los que el servidor debe responder con error al no encontrar la ruta solicitada:
 * **Ruta base inexistente**: solicitar un recurso con una ruta base no implementada
-  <img src="ReadmeImages/img_14.png">
+  <img src="readmeImages/img_14.png">
 * **Ruta específica no válida**: se accede a una ruta base válida, pero con una ruta específica (método GET) que no existe dentro del controlador
-  <img src="ReadmeImages/img_15.png">
+  <img src="readmeImages/img_15.png">
 
 
 ### Pruebas automáticas
@@ -277,9 +277,9 @@ Estas pruebas permiten comprobar que:
 Así, se agarantiza que el framework funcione de forma consistente y que las anotaciones sean interpretadas
 correctamente.
 
-<img src="ReadmeImages/img_13.png">
+<img src="readmeImages/img_13.png">
 
-<img src="ReadmeImages/img_12.png">
+<img src="readmeImages/img_12.png">
 
 
 ## Despliegue
