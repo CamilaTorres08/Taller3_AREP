@@ -17,6 +17,7 @@ Al finalizar, se contará con un prototipo mínimo que demuestra cómo Java, med
 
 ## Arquitectura
 La siguiente figura ilustra los componentes principales, sus responsabilidades y las relaciones entre ellos.
+
 <img src="readmeImages/componentes.png">
 
 ### HttpRequest
@@ -240,10 +241,11 @@ Una vez realizado, al usar el buscador de la interfáz se realiza una petición 
 #### Prueba de error
 Se validan los casos en los que el servidor debe responder con error al no encontrar la ruta solicitada:
 * **Ruta base inexistente**: solicitar un recurso con una ruta base no implementada
+  
   <img src="readmeImages/img_14.png">
 * **Ruta específica no válida**: se accede a una ruta base válida, pero con una ruta específica (método GET) que no existe dentro del controlador
+  
   <img src="readmeImages/img_15.png">
-
 
 ### Pruebas automáticas
 Se incluye pruebas con JUnit para validar el funcionamiento del framework.
