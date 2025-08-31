@@ -41,7 +41,9 @@ public class HttpRequest {
         }
     }
     /**
-     * Gets the base path
+     * Determines the base path of the current request URI from a set of known paths.
+     * @param paths the set of available base paths
+     * @return the matching base path if found, otherwise null
      */
     public String getBasePath(Set<String> paths){
         String fullPath = uri.getPath();
@@ -52,7 +54,9 @@ public class HttpRequest {
         return null;
     }
     /**
-     * Gets the source path
+     * Extracts the resource path from the request URI by removing the given base path.
+     * @param basePath the base path to strip from the URI
+     * @return the remaining resource path, or "/" if empty
      */
     public String getSourcePath(String basePath){
         String resourcePath = uri.getPath().substring(basePath.length());
@@ -67,7 +71,11 @@ public class HttpRequest {
     public String getValues(String paraName){
         return parameters.get(paraName);
     }
-
+    /**
+     * Retrieves the parameter values for a given method by inspecting its @RequestParam annotations.
+     * @param m the method whose parameters will be analyzed
+     * @return an array of parameter values extracted from the request or their default values
+     */
     public String[] getParamValues(Method m){
         Annotation[][] annotations = m.getParameterAnnotations();
         String[] argsValues = new String[annotations.length];
